@@ -1,9 +1,12 @@
+from copy import deepcopy
+
 class SudokuGame(object):
     # object to hold the state of the game as well as game logic
 
     def __init__(self, board_file_name):
+        self.board_id = board_file_name
         self.starting_board = self.initialize_board(board_file_name)
-        self.game_board = self.starting_board.copy()
+        self.game_board = deepcopy(self.starting_board)
         self.game_over = False
 
     def initialize_board(self, board_file_name):
@@ -21,7 +24,7 @@ class SudokuGame(object):
         return board
     
     def reset_board(self):
-        self.game_board = self.starting_board.copy()
+        self.game_board = deepcopy(self.starting_board)
 
     def check_win(self):
         # first check the rows
@@ -42,5 +45,4 @@ class SudokuGame(object):
                         ]
                 if set(square) != set(range(1, 10)):
                     return False
-        self.game_over = True
         return True

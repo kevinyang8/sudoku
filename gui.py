@@ -25,7 +25,7 @@ class SudokuGUI(Frame):
         self.pack(fill=BOTH)
 
         # what we use to draw the sudoku grid
-        self.canvas = Canvas(self, width=WIDTH - MARGIN, height=HEIGHT)
+        self.canvas = Canvas(self, width=WIDTH, height=HEIGHT, highlightthickness=0)
         self.canvas.pack(fill=BOTH, side=LEFT)
 
         title = Label(self, text='Sudoku', font=(None, 40))
@@ -64,6 +64,12 @@ class SudokuGUI(Frame):
         solve_button = Button(self, text='Solve', command=self.solve)
         solve_button.pack()
 
+        # bind key inputs here
+        self.canvas.bind('<Button-1>', self.cell_clicked)
+        self.canvas.bind('<Key>', self.key_pressed)
+        self.canvas.bind('<BackSpace>', self.delete_number)
+        self.canvas.bind('<Escape>', self.close_circle)
+
     def draw_grid(self):
         for i in range(10):
             if i % 3 == 0:
@@ -96,20 +102,107 @@ class SudokuGUI(Frame):
                         color = 'blue'
                     else:
                         color = 'black'
-                    x = MARGIN + (row * SQUARE) + (SQUARE / 2)
-                    y = MARGIN + (col * SQUARE) + (SQUARE / 2)
-                    self.canvas.create_text(x, y, text=value, tag='numbers',fill=color)
-                
+                    x = MARGIN + (col * SQUARE) + (SQUARE / 2)
+                    y = MARGIN + (row * SQUARE) + (SQUARE / 2)
+                    self.canvas.create_text(x, y, text=value, tag='numbers', fill=color)
+    
+    def draw_box(self):
+        self.canvas.delete('box')
+        if self.row >= 0 and self.col >= 0:
+            top_x = MARGIN + self.col * SQUARE
+            top_y = MARGIN + self.row * SQUARE
+            bottom_x = MARGIN + (self.col + 1) * SQUARE
+            bottom_y = MARGIN + (self.row + 1) * SQUARE
+            self.canvas.create_rectangle(top_x, top_y, bottom_x, bottom_y, tags='box', outline='red')
+
+    def cell_clicked(self, event):
+        if self.game.game_over:
+            return
+
+        x = event.x
+        y = event.y
+
+        # check to see if the click is in the grid
+        if MARGIN < x < WIDTH - MARGIN and MARGIN < y < HEIGHT - MARGIN:
+            self.canvas.focus_set()
+            row = (y - MARGIN) // SQUARE
+            col = (x - MARGIN) // SQUARE
+
+            # if current cell is selected already, deselect it.
+            # also don't select cells that weren't already prefilled
+            if self.row == row and self.col == col:
+                self.row = -1
+                self.col = -1
+            elif self.game.starting_board[row][col] == 0:
+                self.row = row
+                self.col = col
+        self.draw_box()
+        
+    def key_pressed(self, event):
+        if self.game.game_over:
+            return
+        if self.row >= 0 and self.col >= 0 and event.char in '123456789':
+            self.game.game_board[self.row][self.col] = int(event.char)
+            self.draw_numbers()
+            self.draw_box()
+
+    def delete_number(self, event):
+        if self.game.game_over:
+            return
+        if self.row >= 0 and self.col >= 0:
+            self.game.game_board[self.row][self.col] = 0
+            self.draw_numbers()
+            self.draw_box()
+    
+    def close_circle(self, event):
+        self.canvas.delete('check_win')
+        # set back to false if isn't actually a win
+        if not self.game.check_win():
+            self.game.game_over = False
 
     def check_win(self):
-        pass
+        # always set to true so can't interact with board when this is displayed
+        self.game.game_over = True 
+        if self.game.check_win():
+            text = '         Victory! \n Press Esc to close.'
+            color = 'light green'
+            outline = 'orange'
+        else:
+            text = 'Something is not correct. \n     Press Esc to close.'
+            color = 'indian red'
+            outline = 'purple'
+
+        top_x = MARGIN + SQUARE * 2
+        top_y = top_x
+        bottom_x = MARGIN + SQUARE * 7
+        bottom_y = bottom_x
+        self.canvas.create_oval(top_x, top_y, bottom_x, bottom_y, tag='check_win', fill=color, outline=outline)
+
+        x = MARGIN + (4 * SQUARE) + (SQUARE / 2)
+        y = x
+        self.canvas.create_text(x, y, tag='check_win', text=text, fill='white')
+        self.canvas.focus_set()
 
     def reset_grid(self):
-        pass
+        self.canvas.delete('check_win')
+        self.game.reset_board()
+        if self.game.game_over:
+            self.game.game_over = False
+        self.row = -1
+        self.col = -1
+        self.draw_numbers()
+        self.draw_box()
 
     def new_board(self):
-        pass
-    
+        self.canvas.delete('check_win')
+        # makes sure a different board is selected from the current one
+        selected_board = random.choice(boards)
+        if selected_board == self.game.board_id:
+            self.new_board()
+        else:
+            self.game = SudokuGame(selected_board)
+            self.reset_grid()
+                
     def solve(self):
         pass
 
