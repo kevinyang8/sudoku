@@ -2,6 +2,7 @@ from tkinter import Tk, Label, Frame, Canvas, BOTH, LEFT, RIGHT, Button
 from sudoku import SudokuGame
 from os import listdir
 import random
+import time
 
 MARGIN = 30
 SQUARE = 50
@@ -113,7 +114,7 @@ class SudokuGUI(Frame):
             top_y = MARGIN + self.row * SQUARE
             bottom_x = MARGIN + (self.col + 1) * SQUARE
             bottom_y = MARGIN + (self.row + 1) * SQUARE
-            self.canvas.create_rectangle(top_x, top_y, bottom_x, bottom_y, tags='box', outline='red')
+            self.canvas.create_rectangle(top_x, top_y, bottom_x, bottom_y, tags='box', outline='red', width=5)
 
     def cell_clicked(self, event):
         if self.game.game_over:
@@ -202,9 +203,39 @@ class SudokuGUI(Frame):
         else:
             self.game = SudokuGame(selected_board)
             self.reset_grid()
-                
+
+    def solve_helper(self):
+        first_empty = self.game.find_first_empty()
+        if not first_empty:
+            return True
+        row = first_empty[0]
+        col = first_empty[1]
+        for i in range(1, 10): # try every number
+            if self.game.valid_move(row, col, i):
+                self.game.game_board[row][col] = i
+                self.row = row
+                self.col = col
+                self.canvas.after(5, self.draw_numbers())
+                self.canvas.after(5, self.draw_box())
+                self.canvas.update_idletasks()
+                time.sleep(0.001)
+                if self.solve_helper():
+                    return True
+                self.game.game_board[row][col] = 0
+                self.canvas.after(5, self.draw_numbers())
+                self.canvas.after(5, self.draw_box())
+                self.canvas.update_idletasks()
+                time.sleep(0.001)
+        return False # if we reach here we have to go back to the previous square
+
     def solve(self):
-        pass
+        if self.game.game_over:
+            return
+        # this is to prevent any interaction with board while algorithm is running
+        self.reset_grid()
+        self.game.game_over = True
+        self.solve_helper()
+        self.game.game_over = False
 
 
 if __name__ == "__main__":

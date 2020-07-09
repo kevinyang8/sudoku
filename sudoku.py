@@ -26,6 +26,24 @@ class SudokuGame(object):
     def reset_board(self):
         self.game_board = deepcopy(self.starting_board)
 
+    def valid_move(self, row, col, num):
+        # check the row
+        for i in range(9):
+            if self.game_board[row][i] == num and col != i:
+                return False
+        # check the column
+        for i in range(9):
+            if self.game_board[i][col] == num and row != i:
+                return False
+        # check the square
+        row_block = col // 3
+        col_block = row // 3
+        for i in range(col_block * 3, col_block * 3 + 3):
+            for j in range(row_block * 3, row_block * 3 + 3):
+                if self.game_board[i][j] == num and (i, j) != (row, col):
+                    return False
+        return True
+
     def check_win(self):
         # first check the rows
         for row in self.game_board:
@@ -46,3 +64,10 @@ class SudokuGame(object):
                 if set(square) != set(range(1, 10)):
                     return False
         return True
+
+    def find_first_empty(self):
+        for row in range(9):
+            for col in range(9):
+                if self.game_board[row][col] == 0:
+                    return row, col
+        return None
